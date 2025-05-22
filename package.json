@@ -7,6 +7,7 @@
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "electron-builder",
+    "release": "electron-builder --publish=always",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
@@ -17,16 +18,30 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "slahaye",
+        "repo": "TimeTrackerNTW"
+      }
+    ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "resources/icon.ico"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "resources/icon.icns"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "resources/icon.png"
     }
   },
@@ -34,8 +49,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@electron/remote": "^2.1.2",
     "dotenv": "^16.5.0",
+    "electron-log": "^5.4.0",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.6.2",
     "googleapis": "^128.0.0"
   },
   "devDependencies": {

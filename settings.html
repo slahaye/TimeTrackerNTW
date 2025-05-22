@@ -70,7 +70,17 @@
             <label for="firstName">Prénom</label>
             <input type="text" id="firstName" placeholder="Entrez votre prénom">
         </div>
-        <button class="save-button" id="saveSettings">Enregistrer</button>
+        <button class="save-button" id="saveSettings" style="margin-top: 20px;">Enregistrer</button>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <div class="form-group">
+            <h2>Mises à jour</h2>
+            <p>Version actuelle: <span id="currentVersion">-</span></p>
+            <div id="updateStatus"></div>
+            <button class="update-button" id="checkUpdates" style="background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px;">Vérifier les mises à jour</button>
+        </div>
+        
     </div>
     <script src="settings.js"></script>
 </body>

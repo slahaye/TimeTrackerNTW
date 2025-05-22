@@ -1,7 +1,9 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, dialog } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const GoogleSheetsSync = require('./googleSheets');
+const { autoUpdater } = require('electron-updater');
+const remoteMain = require('@electron/remote/main');
 
 // Vérifier que l'application est correctement chargée
 if (!app) {
@@ -12,6 +14,15 @@ if (!app) {
 const store = new Store();
 let mainWindow;
 let googleSheets;
+
+// Configuration de l'auto-updater
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+// Initialiser le module remote
+remoteMain.initialize();
 
 // Configurer la CSP avant que l'application ne soit prête
 app.whenReady().then(() => {
@@ -37,6 +48,11 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+  
+  // Vérifier les mises à jour
+  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 });
 
 function createWindow() {
@@ -51,10 +67,14 @@ function createWindow() {
         contextIsolation: false,
         webSecurity: true,
         sandbox: false,
-        devTools: true
+        devTools: true,
+        enableRemoteModule: true
       },
       show: false // Ne pas montrer la fenêtre immédiatement
     });
+    
+    // Activer le module remote pour cette fenêtre
+    remoteMain.enable(mainWindow.webContents);
 
     // Charger l'index.html
     mainWindow.loadFile('index.html')
@@ -157,6 +177,65 @@ ipcMain.handle('sync-to-sheets', async (event, task) => {
     return await googleSheets.syncTask(task);
   } catch (error) {
     console.error('Erreur lors de la synchronisation avec Google Sheets:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Gestionnaires d'événements pour l'auto-updater
+autoUpdater.on('checking-for-update', () => {
+  console.log('Vérification des mises à jour...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Mise à jour disponible:', info);
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Mise à jour disponible',
+    message: `Une nouvelle version (${info.version}) est disponible et sera téléchargée automatiquement.`,
+    buttons: ['OK']
+  });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('Aucune mise à jour disponible:', info);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let logMessage = `Vitesse de téléchargement: ${progressObj.bytesPerSecond} - Téléchargé ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
+  console.log(logMessage);
+  mainWindow.webContents.send('update-download-progress', progressObj);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Mise à jour téléchargée:', info);
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Mise à jour prête',
+    message: 'Une mise à jour a été téléchargée. Elle sera installée au prochain redémarrage de l\'application.',
+    buttons: ['Redémarrer maintenant', 'Plus tard']
+  }).then((returnValue) => {
+    if (returnValue.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Erreur lors de la mise à jour:', err);
+  dialog.showErrorBox('Erreur de mise à jour', `Une erreur est survenue lors de la mise à jour: ${err.message}`);
+});
+
+// Gestionnaire pour vérifier manuellement les mises à jour
+ipcMain.handle('check-for-updates', async () => {
+  if (process.env.NODE_ENV === 'development') {
+    return { success: false, message: 'Les mises à jour sont désactivées en mode développement' };
+  }
+  
+  try {
+    await autoUpdater.checkForUpdates();
+    return { success: true };
+  } catch (error) {
+    console.error('Erreur lors de la vérification des mises à jour:', error);
     return { success: false, error: error.message };
   }
 });
