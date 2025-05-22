@@ -1,6 +1,6 @@
 {
   "name": "time-tracker",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Application de suivi du temps",
   "main": "main.js",
   "scripts": {
@@ -36,7 +36,11 @@
         "dmg",
         "zip"
       ],
-      "icon": "resources/icon.icns"
+      "icon": "resources/icon.icns",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "entitlements": false,
+      "entitlementsInherit": false
     },
     "linux": {
       "target": [

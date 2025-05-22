@@ -20,6 +20,13 @@ autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.allowDowngrade = true;
+autoUpdater.allowPrerelease = false;
+autoUpdater.forceDevUpdateConfig = true;
+
+// Autoriser les applications non signées (important pour le développement)
+process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+app.commandLine.appendSwitch('allow-insecure-localhost', 'true');
 
 // Configurer le fournisseur de mise à jour
 autoUpdater.setFeedURL({
