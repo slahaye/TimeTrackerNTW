@@ -21,6 +21,14 @@ autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
+// Configurer le fournisseur de mise à jour
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'slahaye',
+  repo: 'TimeTrackerNTW',
+  releaseType: 'release'
+});
+
 // Initialiser le module remote
 remoteMain.initialize();
 
