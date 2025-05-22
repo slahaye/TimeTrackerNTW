@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Suivi du Temps</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 10px;
+            background-color: #f5f5f5;
+            font-size: 12px;
+        }
+        button.material-icons {
+            font-size: 16px;
+            padding: 1px 3px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            background: none;
+            transition: background-color 0.2s;
+            margin: 0 1px;
+        }
+        button.material-icons.play {
+            color: #4CAF50;
+        }
+        button.material-icons.edit {
+            color: #2196F3;
+        }
+        button.material-icons.delete {
+            color: #F44336;
+        }
+        button.material-icons.sync {
+            color: #757575;
+        }
+        button.material-icons:hover {
+            background-color: #f0f0f0;
+        }
+        button.material-icons:active {
+            background-color: #e0e0e0;
+        }
+        button.material-icons.synced {
+            color: #4CAF50;
+        }
+        button.material-icons.syncing {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .container {
+            min-width: 540px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .container.with-selection-bar::after {
+            content: '';
+            display: block;
+            height: 40px; /* Hauteur du menu d'action en lot */
+            margin-top: 20px;
+        }
+        .task-entry {
+            cursor: move;
+            transition: transform 0.2s ease-in-out;
+        }
+        .task-entry.dragging {
+            opacity: 0.7;
+            transform: scale(0.98);
+        }
+        .task-entry.dragover {
+            background-color: #f0f0f0;
+        }
+        .task-entry:hover {
+            background-color: #f8f9fa;
+        }
+        .timer-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .task-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 8px 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            text-align: left;
+        }
+        .task-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        .timer-display {
+            grid-column: 2;
+            font-size: 2.5em;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            font-weight: 500;
+            text-align: center;
+            min-width: 120px;
+        }
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .time-adjust-buttons {
+            margin-top: 6px;
+            display: none;
+            gap: 3px;
+            justify-content: center;
+            padding: 4px;
+            background-color: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .time-adjust-button {
+            flex: 1;
+            padding: 3px 6px;
+            border: none;
+            border-radius: 2px;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+        .time-adjust-button:hover {
+            background-color: #bbdefb;
+            transform: translateY(-1px);
+        }
+        .time-adjust-button:active {
+            transform: translateY(0);
+            background-color: #90caf9;
+        }
+        .time-adjust-button-red {
+            background-color: #ffe0e4 !important;
+            color: #dc3545 !important;
+        }
+        .time-adjust-button-red:hover {
+            background-color: #ffbac3 !important;
+        }
+        .time-adjust-button-red:active {
+            background-color: #ffbac3 !important;
+        }
+        .time-adjust-button i {
+            margin-right: 6px;
+            font-size: 1.1em;
+        }
+        .time-adjust-button span {
+            white-space: nowrap;
+        }
+        .history {
+            margin-top: 20px;
+        }
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            cursor: default;
+        }
+        .history-item.dragging {
+            opacity: 0.5;
+            background-color: #f8f9fa;
+        }
+        .drag-handle {
+            cursor: move;
+            padding: 0 10px;
+            color: #999;
+            font-size: 1.2em;
+        }
+        .drag-handle:hover {
+            color: #666;
+        }
+        .task-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0 10px;
+        }
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+        .edit-form.active {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .edit-form input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .edit-button,
+        .save-edit,
+        .timer-button,
+        .cancel-edit {
+            padding: 6px 12px;
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .timer-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .edit-button:hover,
+        .save-edit:hover,
+        .cancel-edit:hover {
+            background-color: #f0f0f0;
+            color: #2196F3;
+        }
+        .edit-button:active,
+        .save-edit:active,
+        .cancel-edit:active {
+            background-color: #ebf4f9;
+            color: #2196F3;
+        }
+        .delete-button {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        .sync-button {
+            background-color: #17a2b8;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        .sync-button.synced {
+            background-color: #28a745;
+        }
+        .tasks-section {
+            margin-top: 15px;
+        }
+        .tasks-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: nowrap;
+            width: 100%;
+            min-width: 100%;
+            flex: 1;
+            position: relative;
+        }
+        .tasks-header h2 {
+            margin: 0;
+            color: #333;
+            white-space: nowrap;
+            flex: 0 0 auto;
+            flex-grow: 1;
+        }
+        .search-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+            margin: 0;
+            flex-shrink: 0;
+            flex: 0 0 auto;
+            max-width: 100%;
+            overflow: hidden;
+            position: absolute;
+            right: 0;
+            top: -5px;
+        }
+        .search-input {
+            width: 70%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-width: 300px;
+        }
+        .search-input::placeholder {
+            color: #999;
+        }
+        #syncedTasks {
+            opacity: 0.8;
+        }
+        #syncedTasks .task-entry {
+            background-color: #f8f9fa;
+        }
+        #syncedTasks .sync-button {
+            display: none;
+        }
+        .task-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .main-content {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .drag-handle {
+            cursor: move;
+            margin-right: 10px;
+            color: #666;
+            user-select: none;
+        }
+        .task-name {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .duration {
+            margin-right: 10px;
+            color: #666;
+        }
+        .buttons-container {
+            display: flex;
+            gap: 5px;
+        }
+        .settings-button {
+            cursor: pointer;
+            color: #ffffff;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            padding: 10px 20px;
+            transition: background-color 0.2s, color 0.2s;
+            margin: 5px;
+
+        }
+        .settings-button:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+        button {
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .timer-button {
+            padding: 8px 8px;
+            border: none;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .timer-button:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        .timer-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .timer-button#startStop {
+            color: #4CAF50;
+        }
+        .timer-button#save {
+            color: #2196F3;
+        }
+        .timer-button.settings-button {
+            padding: 8px;
+            color: #757575;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .task-item.selected {
+            background-color: #e3f2fd;
+        }
+        .select-checkbox {
+            margin-right: 10px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .select-checkbox input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            min-width: 24px;
+            height: 100%;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            transition: all 0.2s;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .select-checkbox input[type="checkbox"]:checked {
+            border-color: #2196F3;
+            background: #2196F3;
+        }
+        .select-checkbox input[type="checkbox"]:checked::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+        .selection-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-top: 1px solid #eee;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        .selection-bar.active {
+            transform: translateY(0);
+        }
+        .selection-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .selection-count {
+            color: #666;
+            font-size: 14px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .action-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .action-button:hover {
+            background-color: #e0e0e0;
+        }
+        .action-button.delete-selected {
+            color: #dc3545;
+        }
+        .action-button.sync-selected {
+            color: #28a745;
+        }
+        
+        .title-with-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        .menu-button {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #666;
+            padding: 0 5px;
+            margin-left: 4px;
+        }
+        
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            /*right: 0;*/
+        }
+        
+        .dropdown-content a {
+            color: red;
+            padding: 10px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 12px;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .task-synch-button:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timer-section">
+            <div class="timer-display" id="timer">00:00:00</div>
+            <input type="text" id="taskName" class="task-input" placeholder="Nom de la tâche">
+            <div class="timer-controls">
+                <button id="startStop" class="timer-button">Démarrer</button>
+                <button id="save" class="timer-button">Enregistrer</button>
+                <button class="settings-button timer-button" id="settingsButton" title="Paramètres">⋮</button>
+            </div>
+            <div class="time-adjust-buttons" id="timeAdjustButtons">
+                <button id="subtractOneMin" class="time-adjust-button time-adjust-button-red">
+                    <i class="material-icons">timer</i>
+                    -1 min
+                </button>
+                <button id="subtractTenMin" class="time-adjust-button time-adjust-button-red">
+                    <i class="material-icons">timer</i>
+                    -10 min
+                </button>
+                <button id="subtractOneHour" class="time-adjust-button time-adjust-button-red">
+                    <i class="material-icons">timer</i>
+                    -1 heure
+                </button>
+                <button id="addOneMin" class="time-adjust-button">
+                    <i class="material-icons">timer</i>
+                    +1 min
+                </button>
+                <button id="addTenMin" class="time-adjust-button">
+                    <i class="material-icons">timer</i>
+                    +10 min
+                </button>
+                <button id="addOneHour" class="time-adjust-button">
+                    <i class="material-icons">timer</i>
+                    +1 heure
+                </button>
+            </div>
+        </div>
+        <div class="tasks-section">
+            <div class="tasks-header">
+                <h2>Tâches en cours</h2>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="currentTasksSearch" placeholder="Rechercher dans les tâches en cours...">
+                </div>
+            </div>
+            <div id="timeEntries"></div>
+        </div>
+        <div class="tasks-section">
+            <div class="tasks-header">
+                <div class="title-with-menu">
+                    <h2>Tâches synchronisées</h2>
+                    <div class="dropdown">
+                        <button class="menu-button task-synch-button">⋮</button>
+                        <div class="dropdown-content">
+                            <a href="#" id="deleteAllSyncedTasks">Supprimer les tâches synchro</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="syncedTasksSearch" placeholder="Rechercher dans les tâches synchronisées...">
+                </div>
+            </div>
+            <div id="syncedTasks"></div>
+        </div>
+    </div>
+
+    <!-- Barre d'actions pour la sélection multiple -->
+    <div id="selectionBar" class="selection-bar">
+        <div class="selection-actions">
+            <span class="selection-count">0 tâche(s) sélectionnée(s)</span>
+            <div class="action-buttons">
+                <button class="action-button delete-selected">Supprimer</button>
+                <button class="action-button deselect-all">Désélectionner</button>
+                <button class="action-button sync-selected">Synchroniser</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Ne pas charger renderer.js ici, il sera chargé dynamiquement après la vérification du DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM chargé, vérification des éléments requis...');
+            
+            // Vérifier les éléments requis
+            const requiredElements = [
+                'timer', 'startStop', 'save', 'taskName', 'timeEntries',
+                'timeAdjustButtons', 'syncedTasks', 'currentTasksSearch', 'syncedTasksSearch',
+                'addOneMin', 'addTenMin', 'subtractOneMin', 'subtractTenMin', 'addOneHour', 'subtractOneHour'
+            ];
+            
+            const missingElements = [];
+            requiredElements.forEach(id => {
+                if (!document.getElementById(id)) {
+                    missingElements.push(id);
+                }
+            });
+            
+            if (missingElements.length > 0) {
+                console.error('Éléments manquants dans le DOM:', missingElements);
+                document.body.innerHTML = `
+                    <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto;">
+                        <h1 style="color: #e74c3c;">Erreur de chargement</h1>
+                        <p>Certains éléments requis sont manquants dans le DOM. Veuillez vérifier la console pour plus de détails.</p>
+                        <p>Éléments manquants: ${missingElements.join(', ')}</p>
+                        <button onclick="window.location.reload()" style="padding: 10px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Réessayer
+                        </button>
+                    </div>`;
+                return;
+            }
+            
+            console.log('Tous les éléments requis sont présents, chargement de renderer.js...');
+            
+            // Charger le script renderer.js après la vérification du DOM
+            const script = document.createElement('script');
+            script.src = 'renderer.js';
+            script.onload = () => {
+                console.log('renderer.js chargé avec succès');
+            };
+            script.onerror = (error) => {
+                console.error('Erreur lors du chargement de renderer.js:', error);
+                document.body.innerHTML = `
+                    <div style="padding: 20px; font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto;">
+                        <h1 style="color: #e74c3c;">Erreur de chargement</h1>
+                        <p>Une erreur est survenue lors du chargement de l'application.</p>
+                        <p>Veuillez recharger la page ou redémarrer l'application.</p>
+                        <button onclick="window.location.reload()" style="padding: 10px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Réessayer
+                        </button>
+                    </div>`;
+            };
+            document.body.appendChild(script);
+        });
+    </script>
+</body>
+</html>
